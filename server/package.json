@@ -1,0 +1,17 @@
+{
+  "name": "node-devops-server",
+  "version": "1.0.0",
+  "description": "Node.js server for DevOps Fargate deployment",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": ["node", "express", "devops", "fargate"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
+

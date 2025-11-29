@@ -1,0 +1,16 @@
+{
+  "name": "node-devops-client",
+  "version": "1.0.0",
+  "description": "Node.js client for DevOps Fargate deployment",
+  "main": "client.js",
+  "scripts": {
+    "start": "node client.js"
+  },
+  "keywords": ["node", "client", "devops"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.6.0"
+  }
+}
+
