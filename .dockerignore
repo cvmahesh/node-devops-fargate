@@ -4,14 +4,5 @@ npm-debug.log
 .gitignore
 README.md
 .env
-.nyc_output
-coverage
-.vscode
-.idea
-*.md
 client/
 .github/
-*.sh
-ecs/
-scripts/
-docker-compose.yml

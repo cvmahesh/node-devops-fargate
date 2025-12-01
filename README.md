@@ -1,354 +1,229 @@
-# Node.js DevOps Fargate Project
+# Node.js DevOps CI/CD Project
 
-A complete DevOps project demonstrating CI/CD pipeline with Node.js, Docker, GitHub Actions, and AWS Fargate (ECS).
+A simple Node.js project with server and client applications, configured for CI/CD using Docker and GitHub Actions.
 
-## 📋 Project Structure
+## 📁 Project Structure
 
 ```
 .
-├── server/                 # Node.js Express server
+├── server/              # Node.js Express server
 │   ├── server.js
 │   └── package.json
-├── client/                 # Node.js client application
+├── client/              # Node.js client for testing
 │   ├── client.js
 │   └── package.json
-├── ecs/                    # ECS configuration files
-│   ├── task-definition.json
-│   └── service-definition.json
-├── scripts/                # Setup and utility scripts
-│   └── setup-aws.sh
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml      # GitHub Actions CI/CD pipeline
-├── Dockerfile              # Docker image definition
-├── .dockerignore
-└── .gitignore
+│       └── deploy.yml   # GitHub Actions CI/CD pipeline
+├── Dockerfile           # Docker image definition
+└── README.md
 ```
 
-## 🚀 Quick Start
+## 🚀 Local Development
 
-### Prerequisites
-
-- Node.js 18+ installed
-- Docker installed
-- AWS CLI configured with appropriate credentials
-- AWS Account with permissions for ECS, ECR, IAM, VPC, and CloudWatch
-
-### Local Development
-
-1. **Install server dependencies:**
-   ```bash
-   cd server
-   npm install
-   ```
-
-2. **Run the server:**
-   ```bash
-   npm start
-   # Server runs on http://localhost:3000
-   ```
-
-3. **Install client dependencies:**
-   ```bash
-   cd client
-   npm install
-   ```
-
-4. **Test the client (in a new terminal):**
-   ```bash
-   cd client
-   SERVER_URL=http://localhost:3000 npm start
-   ```
-
-### Docker Build and Test
+### Run the Server
 
 ```bash
-# Build the Docker image
+cd server
+npm install
+npm start
+```
+
+Server runs on `http://localhost:3000`
+
+### Test the Server
+
+```bash
+# Health check
+curl http://localhost:3000/health
+
+# API info
+curl http://localhost:3000/api/info
+```
+
+### Run the Client
+
+```bash
+cd client
+npm install
+npm start
+```
+
+The client will test all server endpoints.
+
+## 🐳 Docker Build
+
+### Build Docker Image
+
+```bash
 docker build -t node-devops-fargate:latest .
+```
 
-# Run the container
+### Run Docker Container
+
+```bash
 docker run -p 3000:3000 node-devops-fargate:latest
+```
 
-# Test the container
+### Test Container
+
+```bash
 curl http://localhost:3000/health
 ```
 
-## ☁️ AWS Deployment
+## 🔄 CI/CD with GitHub Actions
 
-### Step 1: AWS Infrastructure Setup
+This project uses GitHub Actions to automatically build Docker images and push them to Amazon ECR (Elastic Container Registry).
 
-Before deploying, you need to set up the following AWS resources:
+### Prerequisites
 
-1. **VPC and Networking:**
-   - Create a VPC with public and private subnets (at least 2 subnets in different AZs)
-   - Create an Internet Gateway and NAT Gateway
-   - Configure route tables
+1. **AWS Account** with access to ECR
+2. **AWS IAM User** with permissions to push to ECR
+3. **ECR Repository** created in AWS
 
-2. **Security Groups:**
-   - Create a security group for ECS tasks allowing inbound traffic on port 3000
-   - Create a security group for ALB allowing inbound HTTP/HTTPS traffic
-
-3. **Application Load Balancer (ALB):**
-   - Create an ALB in your VPC
-   - Create a target group for port 3000
-   - Configure health checks pointing to `/health` endpoint
-
-4. **IAM Roles:**
-   - **ECS Task Execution Role:** Allows ECS to pull images from ECR and write logs to CloudWatch
-     - Required policies: `AmazonECSTaskExecutionRolePolicy`
-   - **ECS Task Role:** Permissions for your application (if needed)
-     - Can start with minimal permissions
-
-5. **CloudWatch Log Group:**
-   - Create log group: `/ecs/node-devops-fargate`
-
-### Step 2: Run Setup Script
+### Step 1: Create ECR Repository
 
 ```bash
-# Make script executable (if not already)
-chmod +x scripts/setup-aws.sh
-
-# Run the setup script
-./scripts/setup-aws.sh
+aws ecr create-repository \
+  --repository-name node-devops-fargate \
+  --region us-east-1
 ```
 
-This script will:
-- Create ECR repository
-- Create CloudWatch log group
-- Create ECS cluster
-- Register task definition (you'll need to update account IDs first)
+Note the repository URI (format: `ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/node-devops-fargate`)
 
-### Step 3: Update Configuration Files
+### Step 2: Create IAM User for GitHub Actions
 
-1. **Update `ecs/task-definition.json`:**
-   - Replace `YOUR_ACCOUNT_ID` with your AWS account ID
-   - Update `executionRoleArn` and `taskRoleArn` with your IAM role ARNs
-   - Verify the image URL matches your ECR repository
+1. Go to AWS Console → IAM → Users → Create User
+2. Name: `github-actions-user`
+3. Attach policy: `AmazonEC2ContainerRegistryPowerUser` (or create custom policy with ECR push permissions)
+4. Create Access Key
+5. Save the Access Key ID and Secret Access Key
 
-2. **Update `ecs/service-definition.json`:**
-   - Replace subnet IDs with your actual subnet IDs
-   - Replace security group ID with your security group ID
-   - Update `targetGroupArn` with your ALB target group ARN
-   - Replace `YOUR_ACCOUNT_ID` with your AWS account ID
+### Step 3: Configure GitHub Secrets
 
-3. **Update `.github/workflows/deploy.yml`:**
-   - Update `AWS_REGION` if using a different region
-   - Verify all environment variables match your setup
+1. Go to your GitHub repository
+2. Navigate to **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Add two secrets:
 
-### Step 4: Configure GitHub Secrets
+   **Secret 1:**
+   - Name: `AWS_ACCESS_KEY_ID`
+   - Value: Your AWS Access Key ID
 
-In your GitHub repository, go to Settings → Secrets and variables → Actions, and add:
+   **Secret 2:**
+   - Name: `AWS_SECRET_ACCESS_KEY`
+   - Value: Your AWS Secret Access Key
 
-- `AWS_ACCESS_KEY_ID`: Your AWS access key
-- `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
+### Step 4: Update Workflow Configuration (Optional)
 
-**⚠️ Security Best Practice:** Use IAM roles with least privilege. Consider using OIDC for GitHub Actions instead of access keys.
+Edit `.github/workflows/deploy.yml` if you need to change:
 
-### Step 5: Deploy
+```yaml
+env:
+  AWS_REGION: us-east-1              # Change to your AWS region
+  ECR_REPOSITORY: node-devops-fargate # Change to your ECR repository name
+```
 
-1. **Initial Deployment (Manual):**
-   ```bash
-   # Register task definition
-   aws ecs register-task-definition --cli-input-json file://ecs/task-definition.json
+### Step 5: Push Code to Trigger Pipeline
 
-   # Create ECS service
-   aws ecs create-service --cli-input-json file://ecs/service-definition.json
-   ```
+```bash
+git add .
+git commit -m "Setup CI/CD pipeline"
+git push origin main
+```
 
-2. **Automated Deployment:**
-   - Push code to the `main` branch
-   - GitHub Actions will automatically:
-     - Build and test the application
-     - Build Docker image
-     - Push to ECR
-     - Update ECS service with new image
+### Step 6: Monitor the Pipeline
 
-## 🔧 Technical Considerations
+1. Go to **Actions** tab in your GitHub repository
+2. Click on the running workflow
+3. Watch the build and push process
 
-### 1. **Security**
+## 📊 What the CI/CD Pipeline Does
 
-- **Secrets Management:**
-  - Never commit AWS credentials to the repository
-  - Use AWS Secrets Manager or Parameter Store for sensitive data
-  - Consider using AWS IAM Roles for Service Accounts (IRSA) for better security
+When you push code to the `main` branch:
 
-- **Container Security:**
-  - Use minimal base images (Alpine Linux)
-  - Regularly update dependencies (`npm audit`)
-  - Enable ECR image scanning
-  - Run containers as non-root user (add to Dockerfile)
+1. ✅ **Checks out code** from repository
+2. ✅ **Sets up Node.js** environment
+3. ✅ **Installs dependencies** from `server/package.json`
+4. ✅ **Configures AWS credentials** from GitHub Secrets
+5. ✅ **Logs into Amazon ECR**
+6. ✅ **Builds Docker image** from Dockerfile
+7. ✅ **Tags image** with commit SHA and `latest`
+8. ✅ **Pushes image** to ECR repository
 
-- **Network Security:**
-  - Use private subnets for ECS tasks
-  - Use security groups to restrict traffic
-  - Enable VPC Flow Logs for monitoring
-  - Consider using AWS WAF with ALB
+## 🔍 Verify Deployment
 
-### 2. **High Availability & Scalability**
+After the pipeline completes successfully:
 
-- **Multi-AZ Deployment:**
-  - Deploy tasks across multiple availability zones
-  - Use at least 2 subnets in different AZs
-  - Set `desiredCount` to 2 or more for redundancy
+```bash
+# List images in ECR
+aws ecr list-images \
+  --repository-name node-devops-fargate \
+  --region us-east-1
 
-- **Auto Scaling:**
-  - Configure ECS Service Auto Scaling based on CPU/memory metrics
-  - Set up CloudWatch alarms
-  - Consider using Application Auto Scaling
+# Get login command (to pull image locally)
+aws ecr get-login-password --region us-east-1 | \
+  docker login --username AWS --password-stdin ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com
 
-- **Load Balancing:**
-  - Use Application Load Balancer for HTTP/HTTPS traffic
-  - Configure health checks properly
-  - Enable sticky sessions if needed
+# Pull and run the image
+docker pull ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/node-devops-fargate:latest
+docker run -p 3000:3000 ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/node-devops-fargate:latest
+```
 
-### 3. **Monitoring & Logging**
+## 🐛 Troubleshooting
 
-- **CloudWatch:**
-  - Enable container insights for better monitoring
-  - Set up CloudWatch alarms for:
-    - High CPU utilization
-    - High memory usage
-    - Task failures
-    - Health check failures
+### Pipeline Fails: "AWS credentials not found"
 
-- **Application Logs:**
-  - All logs are sent to CloudWatch Logs
-  - Use structured logging (JSON format)
-  - Implement log rotation and retention policies
+**Solution:** Make sure GitHub Secrets are configured correctly:
+- Go to Settings → Secrets and variables → Actions
+- Verify `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` exist
 
-- **Metrics:**
-  - Monitor ECS service metrics
-  - Track request latency and error rates
-  - Set up dashboards in CloudWatch
+### Pipeline Fails: "Cannot push to ECR"
 
-### 4. **Cost Optimization**
+**Solution:** 
+1. Verify ECR repository exists
+2. Check IAM user has `ecr:PutImage` permission
+3. Verify AWS region matches in workflow file
 
-- **Right-sizing:**
-  - Start with minimal CPU/memory (256 CPU, 512 MB)
-  - Monitor and adjust based on actual usage
-  - Use Fargate Spot for non-production workloads (save up to 70%)
+### Pipeline Fails: "Docker build failed"
 
-- **Resource Management:**
-  - Use appropriate instance sizes
-  - Enable auto-scaling to scale down during low traffic
-  - Clean up unused ECR images
-  - Set CloudWatch log retention policies
+**Solution:**
+1. Test Docker build locally: `docker build -t test .`
+2. Check Dockerfile syntax
+3. Verify all files are committed to repository
 
-### 5. **CI/CD Best Practices**
+### Image Not Appearing in ECR
 
-- **Branch Strategy:**
-  - Use feature branches for development
-  - Deploy to staging on `develop` branch
-  - Deploy to production on `main` branch
+**Solution:**
+1. Check pipeline logs for errors
+2. Verify ECR repository name matches in workflow
+3. Check AWS region is correct
 
-- **Testing:**
-  - Add unit tests
-  - Add integration tests
-  - Run tests in CI pipeline before deployment
-  - Consider adding security scanning (Snyk, npm audit)
+## 📝 Next Steps
 
-- **Deployment Strategy:**
-  - Use blue/green deployments for zero downtime
-  - Implement canary deployments for gradual rollouts
-  - Set up deployment circuit breakers (already in service definition)
+After successfully pushing images to ECR, you can:
 
-### 6. **Disaster Recovery**
+1. **Deploy to ECS Fargate** - Use the pushed image in ECS task definitions
+2. **Deploy to EC2** - Pull and run the image on EC2 instances
+3. **Use with Kubernetes** - Deploy to EKS using the ECR image
+4. **Add Testing** - Add unit tests that run in the pipeline before building
+5. **Add Deployment** - Extend the workflow to automatically deploy to ECS
 
-- **Backup:**
-  - ECR images are automatically stored in S3
-  - Task definitions are versioned
-  - Keep infrastructure as code (consider Terraform/CloudFormation)
+## 🔐 Security Notes
 
-- **Recovery:**
-  - Document recovery procedures
-  - Test disaster recovery scenarios
-  - Keep runbooks updated
+- ⚠️ Never commit AWS credentials to the repository
+- ✅ Always use GitHub Secrets for sensitive data
+- ✅ Use IAM users with minimal required permissions
+- ✅ Regularly rotate access keys
+- ✅ Consider using AWS IAM OIDC for GitHub Actions (more secure)
 
-### 7. **Compliance & Governance**
-
-- **Tagging:**
-  - Tag all AWS resources (Environment, Project, Owner, etc.)
-  - Use AWS Resource Groups for organization
-
-- **Compliance:**
-  - Enable AWS Config for compliance monitoring
-  - Use AWS CloudTrail for audit logging
-  - Implement proper IAM policies
-
-## 📊 API Endpoints
+## 📚 API Endpoints
 
 - `GET /` - Root endpoint with service information
 - `GET /health` - Health check endpoint
 - `GET /api/info` - Service information and metrics
 - `POST /api/echo` - Echo endpoint for testing
 
-## 🧪 Testing
-
-### Local Testing
-
-```bash
-# Test server
-curl http://localhost:3000/health
-
-# Test API
-curl http://localhost:3000/api/info
-
-# Test echo
-curl -X POST http://localhost:3000/api/echo \
-  -H "Content-Type: application/json" \
-  -d '{"test": "data"}'
-```
-
-### Client Testing
-
-```bash
-cd client
-SERVER_URL=http://your-alb-url.us-east-1.elb.amazonaws.com npm start
-```
-
-## 🔍 Troubleshooting
-
-### Common Issues
-
-1. **Task fails to start:**
-   - Check CloudWatch logs: `/ecs/node-devops-fargate`
-   - Verify IAM roles have correct permissions
-   - Check security group allows outbound traffic
-
-2. **Health check failures:**
-   - Verify health check endpoint is accessible
-   - Check security group allows traffic on port 3000
-   - Review health check configuration in task definition
-
-3. **Image pull errors:**
-   - Verify ECR repository exists
-   - Check IAM execution role has ECR permissions
-   - Verify image tag is correct
-
-4. **Deployment stuck:**
-   - Check ECS service events in AWS Console
-   - Verify target group health
-   - Check if tasks are failing health checks
-
-## 📚 Additional Resources
-
-- [AWS ECS Documentation](https://docs.aws.amazon.com/ecs/)
-- [AWS Fargate Documentation](https://docs.aws.amazon.com/AmazonECS/latest/developerguide/AWS_Fargate.html)
-- [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- [Docker Best Practices](https://docs.docker.com/develop/dev-best-practices/)
-
-## 📝 License
-
-ISC
-
-## 🤝 Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Test locally
-4. Submit a pull request
-
 ---
 
-**Note:** This is a template project. Customize it according to your specific requirements and security policies.
-# node-devops-fargate
+**Ready to deploy?** Follow the steps above to set up your CI/CD pipeline! 🚀

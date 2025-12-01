@@ -1,13 +1,5 @@
 node_modules/
 npm-debug.log
 .env
-.nyc_output
-coverage/
 .DS_Store
 *.log
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-.task-definition.json
