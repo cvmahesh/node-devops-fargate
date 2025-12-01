@@ -9,8 +9,9 @@ A simple Node.js project with server and client applications, configured for CI/
 ├── server/              # Node.js Express server
 │   ├── server.js
 │   └── package.json
-├── client/              # Node.js client for testing
-│   ├── client.js
+├── client/              # Client applications for testing
+│   ├── client.js       # Node.js command-line client
+│   ├── index.html      # Browser-based client
 │   └── package.json
 ├── .github/
 │   └── workflows/
@@ -41,7 +42,35 @@ curl http://localhost:3000/health
 curl http://localhost:3000/api/info
 ```
 
-### Run the Client
+### Test the Server with Browser Client
+
+1. **Start the server** (if not already running):
+   ```bash
+   cd server
+   npm install
+   npm start
+   ```
+
+2. **Open the browser client**:
+   - Open `client/index.html` in your web browser
+   - Or use a simple HTTP server:
+     ```bash
+     # Using Python 3
+     cd client
+     python3 -m http.server 8080
+     # Then open http://localhost:8080 in your browser
+     
+     # Or using Node.js http-server (install globally: npm install -g http-server)
+     cd client
+     http-server -p 8080
+     ```
+
+3. **In the browser**:
+   - Enter your server URL (default: `http://localhost:3000`)
+   - Click buttons to test different endpoints
+   - View results in real-time
+
+### Run the Node.js Client (Alternative)
 
 ```bash
 cd client
@@ -49,7 +78,7 @@ npm install
 npm start
 ```
 
-The client will test all server endpoints.
+The Node.js client will test all server endpoints from the command line.
 
 ## 🐳 Docker Build
 
