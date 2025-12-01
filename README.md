@@ -9,16 +9,20 @@ A simple Node.js project with server and client applications, configured for CI/
 ├── server/              # Node.js Express server
 │   ├── server.js
 │   └── package.json
-├── client/              # Client applications for testing
-│   ├── client.js       # Node.js command-line client
-│   ├── index.html      # Browser-based client
+├── client/              # Node.js client for testing
+│   ├── client.js
 │   └── package.json
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml   # GitHub Actions CI/CD pipeline
 ├── Dockerfile           # Docker image definition
-└── README.md
+├── README.md
+└── CODE_CHECKIN_GUIDE.md # Step-by-step guide for code check-in
 ```
+
+## 📚 Documentation
+
+- **[CODE_CHECKIN_GUIDE.md](CODE_CHECKIN_GUIDE.md)** - Complete guide for junior developers on how to check in code using Git
 
 ## 🚀 Local Development
 
@@ -82,6 +86,7 @@ The Node.js client will test all server endpoints from the command line.
 
 ## 🐳 Docker Build
 
+### start the 
 ### Build Docker Image
 
 ```bash
