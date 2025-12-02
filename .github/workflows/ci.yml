@@ -79,7 +79,7 @@ jobs:
           echo "- ✅ Dependencies installed" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Security audit completed" >> $GITHUB_STEP_SUMMARY
           echo "- ✅ Docker image built successfully" >> $GITHUB_STEP_SUMMARY
-          echo "- ✅ Docker container tested" >> $GITHUB_SUMMARY
+          echo "- ✅ Docker container tested" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Ready for deployment!** Use the CD workflow to deploy." >> $GITHUB_STEP_SUMMARY
 
