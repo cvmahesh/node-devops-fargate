@@ -18,12 +18,17 @@ A simple Node.js project with server and client applications, configured for CI/
 │       └── cd.yml       # CD pipeline (manual - deploy to ECR)
 ├── Dockerfile           # Docker image definition
 ├── README.md
-└── CODE_CHECKIN_GUIDE.md # Step-by-step guide for code check-in
+├── CODE_CHECKIN_GUIDE.md # Step-by-step guide for code check-in
+└── AWS_SETUP.md          # AWS initial setup guide
 ```
 
 ## 📚 Documentation
 
+- **[AWS_SETUP.md](AWS_SETUP.md)** - AWS initial setup required for CI/CD
+
 - **[CODE_CHECKIN_GUIDE.md](CODE_CHECKIN_GUIDE.md)** - Complete guide for junior developers on how to check in code using Git
+- **[CI_CD_GUIDE.md](CI_CD_GUIDE.md)** - Detailed guide on how CI/CD pipelines work
+- **[CD_SCRIPT_EXPLANATION.md](CD_SCRIPT_EXPLANATION.md)** - Line-by-line explanation of the CD pipeline script
 
 ## 🚀 Local Development
 
