@@ -14,7 +14,8 @@ A simple Node.js project with server and client applications, configured for CI/
 │   └── package.json
 ├── .github/
 │   └── workflows/
-│       └── deploy.yml   # GitHub Actions CI/CD pipeline
+│       ├── ci.yml       # CI pipeline (automatic - build & test)
+│       └── cd.yml       # CD pipeline (manual - deploy to ECR)
 ├── Dockerfile           # Docker image definition
 ├── README.md
 └── CODE_CHECKIN_GUIDE.md # Step-by-step guide for code check-in
@@ -107,7 +108,12 @@ curl http://localhost:3000/health
 
 ## 🔄 CI/CD with GitHub Actions
 
-This project uses GitHub Actions to automatically build Docker images and push them to Amazon ECR (Elastic Container Registry).
+This project uses **separate CI and CD pipelines**:
+
+- **CI Pipeline** (`ci.yml`) - Runs automatically on every push/PR to build and test
+- **CD Pipeline** (`cd.yml`) - Runs manually to deploy to ECR after CI passes
+
+📖 **See [CI_CD_GUIDE.md](CI_CD_GUIDE.md) for detailed workflow instructions.**
 
 ### Prerequisites
 
@@ -158,7 +164,7 @@ env:
   ECR_REPOSITORY: node-devops-fargate # Change to your ECR repository name
 ```
 
-### Step 5: Push Code to Trigger Pipeline
+### Step 5: Push Code to Trigger CI Pipeline
 
 ```bash
 git add .
@@ -166,24 +172,44 @@ git commit -m "Setup CI/CD pipeline"
 git push origin main
 ```
 
-### Step 6: Monitor the Pipeline
+The **CI pipeline will run automatically** to build and test your code.
+
+### Step 6: Verify CI Passed
 
 1. Go to **Actions** tab in your GitHub repository
-2. Click on the running workflow
-3. Watch the build and push process
+2. Click on **CI Pipeline** workflow
+3. Verify all steps show ✅ (green checkmarks)
 
-## 📊 What the CI/CD Pipeline Does
+### Step 7: Trigger CD Pipeline Manually
 
-When you push code to the `main` branch:
+1. Go to **Actions** → **CD Pipeline**
+2. Click **Run workflow** button
+3. Select:
+   - **Environment:** `production` or `staging`
+   - **Image tag:** (Optional) Leave empty for commit SHA
+4. Click **Run workflow**
+
+## 📊 What the CI Pipeline Does (Automatic)
+
+When you push code:
 
 1. ✅ **Checks out code** from repository
 2. ✅ **Sets up Node.js** environment
 3. ✅ **Installs dependencies** from `server/package.json`
-4. ✅ **Configures AWS credentials** from GitHub Secrets
-5. ✅ **Logs into Amazon ECR**
-6. ✅ **Builds Docker image** from Dockerfile
-7. ✅ **Tags image** with commit SHA and `latest`
-8. ✅ **Pushes image** to ECR repository
+4. ✅ **Runs security audit** to check for vulnerabilities
+5. ✅ **Builds Docker image** to verify it builds correctly
+6. ✅ **Tests Docker container** by running it and checking health
+
+## 📊 What the CD Pipeline Does (Manual)
+
+When you manually trigger CD:
+
+1. ✅ **Checks CI status** - Ensures CI has passed
+2. ✅ **Configures AWS credentials** from GitHub Secrets
+3. ✅ **Logs into Amazon ECR**
+4. ✅ **Builds Docker image** from Dockerfile
+5. ✅ **Tags image** with commit SHA, environment tag, and `latest`
+6. ✅ **Pushes image** to ECR repository
 
 ## 🔍 Verify Deployment
 

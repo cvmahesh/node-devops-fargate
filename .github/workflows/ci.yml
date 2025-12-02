@@ -1,0 +1,85 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./server
+        run: npm ci
+
+      - name: Run security audit
+        working-directory: ./server
+        run: |
+          echo "Running security audit..."
+          npm audit --audit-level=moderate || true
+
+      - name: Check for high severity vulnerabilities
+        working-directory: ./server
+        run: |
+          if npm audit --audit-level=high; then
+            echo "✅ No high severity vulnerabilities found"
+          else
+            echo "❌ High severity vulnerabilities found!"
+            exit 1
+          fi
+
+      - name: Build Docker image
+        run: |
+          echo "Building Docker image for validation..."
+          docker build -t node-devops-fargate:test .
+          echo "✅ Docker image built successfully"
+
+      - name: Test Docker image
+        run: |
+          echo "Testing Docker container..."
+          docker run -d -p 3000:3000 --name test-container node-devops-fargate:test
+          sleep 5
+          
+          # Test health endpoint
+          response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/health || echo "000")
+          if [ "$response" = "200" ]; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed (HTTP $response)"
+            docker logs test-container
+            exit 1
+          fi
+          
+          # Cleanup
+          docker stop test-container
+          docker rm test-container
+          echo "✅ Docker container test passed"
+
+      - name: CI Summary
+        run: |
+          echo "## ✅ CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Dependencies installed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Security audit completed" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Docker image built successfully" >> $GITHUB_STEP_SUMMARY
+          echo "- ✅ Docker container tested" >> $GITHUB_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Ready for deployment!** Use the CD workflow to deploy." >> $GITHUB_STEP_SUMMARY
+

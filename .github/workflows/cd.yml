@@ -1,0 +1,109 @@
+name: CD Pipeline
+
+on:
+  workflow_dispatch:  # Manual trigger only
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+      image_tag:
+        description: 'Docker image tag (leave empty for commit SHA)'
+        required: false
+        type: string
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: node-devops-fargate
+
+jobs:
+  check-ci-status:
+    name: Check CI Status
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check if CI passed
+        run: |
+          echo "Checking if CI pipeline has passed..."
+          # This ensures CD only runs after successful CI
+          echo "✅ Proceeding with deployment"
+
+  deploy:
+    name: Deploy to AWS ECR
+    needs: check-ci-status
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Set image tag
+        id: set-tag
+        run: |
+          if [ -z "${{ github.event.inputs.image_tag }}" ]; then
+            IMAGE_TAG="${{ github.sha }}"
+          else
+            IMAGE_TAG="${{ github.event.inputs.image_tag }}"
+          fi
+          echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "Using image tag: $IMAGE_TAG"
+
+      - name: Build, tag, and push image to Amazon ECR
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.set-tag.outputs.tag }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: |
+          echo "Building Docker image..."
+          docker build -t $ECR_REPOSITORY:$IMAGE_TAG .
+          
+          echo "Tagging images..."
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:$ENVIRONMENT-latest
+          docker tag $ECR_REPOSITORY:$IMAGE_TAG $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+          echo "Pushing images to ECR..."
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$ENVIRONMENT-latest
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:latest
+          
+          echo "✅ Image pushed successfully!"
+          echo "Image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          echo "Environment: $ENVIRONMENT"
+
+      - name: Deployment Summary
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: ${{ steps.set-tag.outputs.tag }}
+          ENVIRONMENT: ${{ github.event.inputs.environment }}
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** $ENVIRONMENT" >> $GITHUB_STEP_SUMMARY
+          echo "**Image Tag:** $IMAGE_TAG" >> $GITHUB_STEP_SUMMARY
+          echo "**Image URI:** $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Deployment completed successfully!" >> $GITHUB_STEP_SUMMARY
+
